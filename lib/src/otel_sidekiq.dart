@@ -2,7 +2,6 @@
 // Copyright 2025-2026 Mindful Software LLC d/b/a Dartastic.io, All rights reserved.
 
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
-import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'otel_sidekiq_suppression.dart';
 
@@ -52,48 +51,60 @@ Future<T> tracedSidekiq<T>({
   final t = tracer ?? OTel.tracerProvider().getTracer('otel_sidekiq');
   final span = t.startSpan('sidekiq $operation', kind: SpanKind.producer);
   try {
-    span.setStringAttribute('messaging.system', 'sidekiq');
+    span.addAttributes(
+        OTel.attributes([OTel.attributeString('messaging.system', 'sidekiq')]));
     final r = await invoke();
     final res = r.result;
     if (res != null) {
       if (res.queue != null) {
-        span.setStringAttribute('messaging.destination.name', res.queue!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('messaging.destination.name', res.queue!)]));
       }
       if (res.className != null) {
-        span.setStringAttribute('sidekiq.class', res.className!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('sidekiq.class', res.className!)]));
       }
       if (res.jobId != null) {
-        span.setStringAttribute('messaging.message.id', res.jobId!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('messaging.message.id', res.jobId!)]));
       }
       if (res.retry != null) {
-        span.setBoolAttribute('sidekiq.retry', res.retry!);
+        span.addAttributes(
+            OTel.attributes([OTel.attributeBool('sidekiq.retry', res.retry!)]));
       }
       if (res.attempt != null) {
-        span.setIntAttribute('sidekiq.attempt', res.attempt!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeInt('sidekiq.attempt', res.attempt!)]));
       }
       if (res.backtrace != null) {
-        span.setStringAttribute('sidekiq.backtrace', res.backtrace!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('sidekiq.backtrace', res.backtrace!)]));
       }
       if (res.batchId != null) {
-        span.setStringAttribute('sidekiq.batch.id', res.batchId!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('sidekiq.batch.id', res.batchId!)]));
       }
       if (res.durationMs != null) {
-        span.setIntAttribute('sidekiq.duration', res.durationMs!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeInt('sidekiq.duration', res.durationMs!)]));
       }
       if (res.statusCode != null) {
-        span.setIntAttribute('http.response.status_code', res.statusCode!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeInt('http.response.status_code', res.statusCode!)]));
       }
       if (res.errorCode != null) {
-        span.setStringAttribute('sidekiq.error.code', res.errorCode!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('sidekiq.error.code', res.errorCode!)]));
       }
-      final fail =
-          res.errorCode != null ||
+      final fail = res.errorCode != null ||
           (res.statusCode != null && res.statusCode! >= 400);
       if (fail) {
-        span.setStringAttribute(
-          ErrorResource.errorType.key,
-          res.errorCode ?? 'sidekiq.error',
-        );
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString(
+            ErrorResource.errorType.key,
+            res.errorCode ?? 'sidekiq.error',
+          )
+        ]));
         span.setStatus(SpanStatusCode.Error, res.errorMessage);
       }
     }
